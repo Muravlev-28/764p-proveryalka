@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.spec
+.pytest_cache/
+service/
+backups/
+archive/
+Результаты проверки/
+Перечень 764-П.xlsx
+
+self-test-result.json

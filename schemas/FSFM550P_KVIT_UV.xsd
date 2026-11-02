@@ -1,0 +1,145 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:include schemaLocation="data_types.xsd"/>
+	<!-- **************************************************************************************************************************************** -->
+	<!-- *    XSD-схема уведомления о принятии (непринятии) ЭС кредитной организацией (филиалом кредитной организации), НФО (филиалом НФО)      * -->
+	<!-- **************************************************************************************************************************************** -->
+	<xs:simpleType name="ИдентификаторЗаписиUV">
+		<xs:annotation>
+			<xs:documentation>Указывается уникальный идентификатор записи сведений, представляемых организацией (филиалом организации)</xs:documentation>
+		</xs:annotation>
+		<xs:restriction base="xs:string">
+			<xs:pattern value="([0-9]{4}_[0-9]{3}_(01|02|11|00)_[0-9a-zA-Z]{16})"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:element name="KVIT">
+		<xs:annotation>
+			<xs:documentation>
+				Уведомление о принятии (непринятии) ЭС кредитной организацией (филиалом кредитной организации), НФО (филиалом НФО)
+			</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="IDNOR">
+					<xs:annotation>
+						<xs:documentation>Идентификатор организации, формирующей уведомления о принятии (непринятии) ЭС</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:pattern value="([0-9]{4}_[0-9]{4})|([0-9]{10,12}_[0-9]{9})"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="ES" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Имя файла ЭС</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SIZE_ES" type="xs:nonNegativeInteger">
+					<xs:annotation>
+						<xs:documentation>Размер файла ЭС, в байтах</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="DATE_ES" type="ДатаТип">
+					<xs:annotation>
+						<xs:documentation>Дата формирования ЭС</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="RECNO_ES">
+					<xs:annotation>
+						<xs:documentation>Операций, информация по которым включается в ЭС</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="ES_REC" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Информация о принятии (непринятии) операции, идентификатор, которой указан в атрибуте IdInfoOR</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="REZ_ES">
+											<xs:annotation>
+												<xs:documentation>Результат обработки информации об операции, включенной в ЭС</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="0|1"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="ERRORS_ES" minOccurs="0" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Перечень ошибок</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="ERR_REC" maxOccurs="unbounded">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="KOD_ERR" type="xs:string">
+																	<xs:annotation>
+																		<xs:documentation>Код ошибки</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="NAM_ERR" type="xs:string">
+																	<xs:annotation>
+																		<xs:documentation>Описание ошибки</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+															</xs:sequence>
+															<xs:attribute name="RecId" type="xs:nonNegativeInteger">
+																<xs:annotation>
+																	<xs:documentation>Порядковый номер ошибки</xs:documentation>
+																</xs:annotation>
+															</xs:attribute>
+														</xs:complexType>
+													</xs:element>
+												</xs:sequence>
+												<xs:attribute name="nRec" type="xs:nonNegativeInteger">
+													<xs:annotation>
+														<xs:documentation>Количество ошибок</xs:documentation>
+													</xs:annotation>
+												</xs:attribute>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+									<xs:attribute name="IdInfoOR" type="ИдентификаторЗаписиUV">
+										<xs:annotation>
+											<xs:documentation>Уникальный идентификатор направляемой информации</xs:documentation>
+										</xs:annotation>
+									</xs:attribute>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+						<xs:attribute name="nRec" type="xs:nonNegativeInteger">
+							<xs:annotation>
+								<xs:documentation>Количество операций, информация по которым включается в ЭС</xs:documentation>
+							</xs:annotation>
+						</xs:attribute>
+					</xs:complexType>	
+				</xs:element>							
+				<xs:element name="DATE_KVIT" type="ДатаТип">
+					<xs:annotation>
+						<xs:documentation>Дата формирования уведомления о принятии (непринятии) ЭС</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TIME_KVIT" type="ВремяТип">
+					<xs:annotation>
+						<xs:documentation>Время формирования уведомления о принятии (непринятии) ЭС</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="OPER" type="xs:string">
+					<xs:annotation>
+						<xs:documentation>Идентификатор оператора</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TEL_OPER" type="ТелефонТип">
+					<xs:annotation>
+						<xs:documentation>Телефон оператора</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

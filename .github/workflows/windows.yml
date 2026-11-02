@@ -1,0 +1,58 @@
+name: Windows validation and EXE
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - run: python -m pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+  build:
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - run: python -m pip install -r requirements-build.txt
+      - name: Verify prerequisites and build onefile executable
+        shell: pwsh
+        run: ./scripts/build_windows.ps1
+      - name: Check packaged executable
+        shell: pwsh
+        run: |
+          Remove-Item ./dist/self-test-result.json -ErrorAction SilentlyContinue
+          $process = Start-Process -FilePath ./dist/Check764P.exe -ArgumentList '--self-test','--gui-smoke' -PassThru
+          if (!$process.WaitForExit(180000)) { $process.Kill(); throw 'Packaged self-test timeout.' }
+          $process.Refresh()
+          if ($process.ExitCode -ne 0) { throw 'Packaged application self-test failed.' }
+          if (!(Test-Path 'dist/self-test-result.json')) { throw 'Packaged self-test evidence is missing.' }
+          $evidence = Get-Content ./dist/self-test-result.json -Raw | ConvertFrom-Json
+          if (!$evidence.ok) { throw 'Packaged self-test reported failure.' }
+          Get-FileHash ./dist/Check764P.exe -Algorithm SHA256 | Format-List | Out-File ./dist/Check764P.sha256.txt
+          python -m pip freeze | Out-File ./dist/build-dependencies.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Check764P-Windows-x64
+          path: |
+            dist/Check764P.exe
+            dist/self-test-result.json
+            dist/Check764P.sha256.txt
+            dist/build-dependencies.txt
+            examples/clients.xlsx
+            README.md
+            docs/STATUS.md
+          if-no-files-found: error

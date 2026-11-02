@@ -1,0 +1,352 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:include schemaLocation="data_types.xsd"/>
+
+	<!-- ***************************************************************************************************************************************************** -->
+	<!-- *     XSD-схема электронных документов, предусмотренных Положением Банка России от 30 марта 2018 г. № 639-П (ранее № 550-П от 20 июля 2016 года)    * -->
+	<!-- *             «О порядке доведения до сведения кредитных организаций и некредитных финансовых организаций информации о случаях отказа               * -->
+	<!-- *                в выполнении распоряжения  клиента о совершении операции, отказа от заключения договора банковского счета (вклада)                 * -->
+	<!-- *                                  и (или) расторжения договора банковского счета (вклада) с клиентом»                                              * -->
+	<!-- ***************************************************************************************************************************************************** -->
+	
+	<xs:element name="СообщОтказ_115ФЗ">
+		<xs:annotation>
+			<xs:documentation>
+				ЭС о случаях отказа от заключения договора банковского счета (вклада), и (или) о случаях расторжения договора банковского счета (вклада)
+				с клиентом по инициативе кредитной организации по основаниям, и (или) о случаях отказа в выполнении распоряжения клиента о совершении операции
+			</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="СлужЧасть" type="СлужЧастьТип">
+					<xs:annotation>
+						<xs:documentation>Служебная часть ЭС</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="ИнформЧасть" minOccurs="1" maxOccurs="2">
+					<xs:annotation>
+						<xs:documentation>Информационная часть ЭС</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="ТипОрганизация">
+								<xs:annotation>
+									<xs:documentation>Тип организации</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:pattern value="КО|НФО"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:element name="Раздел1.1" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>
+										Раздел 1.1. Сведения о случаях отказа от заключения договора банковского счета (вклада) и (или)
+										о случаях расторжения договора банковского счета (вклада) с клиентом по инициативе кредитной организации
+									</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="НомерЗаписи" type="ИдентификаторЗаписи">
+											<xs:annotation>
+												<xs:documentation>Номер записи в ЭС</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ФорматЗаписи" type="Т20">
+											<xs:annotation>
+												<xs:documentation>Формат ЭС</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ТипЗаписи">
+											<xs:annotation>
+												<xs:documentation>Тип записи в ЭС</xs:documentation>
+												<xs:documentation>
+													Значения показателя "7" и "8" введены в целях реализации положений 
+													пунктов 13 и 13.1 статьи 7 Федерального закона № 115-ФЗ
+													(в редакции Федерального закона от 30.12.2020 № 536-ФЗ)
+												</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="[1-8]"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="ПризнакИнф" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>
+													Признак использования информации, полученной от Банка России в соответствии
+													с пунктом 13.3 статьи 7 Федерального закона № 115-ФЗ
+												</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="0|1"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="КодОтказа">
+											<xs:annotation>
+												<xs:documentation>
+													Код основания отказа от заключения договора банковского счета (вклада)
+													или расторжения договора банковского счета (вклада)
+												</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="03|09"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="КодПричинаОтказ" minOccurs="0" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>
+													Код (коды) причины отказа от заключения договора банковского счета (вклада)
+												</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="[0-9]{4}"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="ДатаОтказа" type="ДатаТип">
+											<xs:annotation>
+												<xs:documentation>
+													Дата отказа от заключения договора банковского счета (вклада)
+													или расторжения договора банковского счета (вклада)
+												</xs:documentation>
+											</xs:annotation>
+										</xs:element>										
+										<xs:element name="ТипКлиента">
+											<xs:annotation>
+												<xs:documentation>Тип клиента</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="[1-5]"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="ПризнакКлиента">
+											<xs:annotation>
+												<xs:documentation>Признак резидента (нерезидента) клиента</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="0|1|"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="СведЮЛ" type="СведенияЮЛ" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения о юридическом лице (филиале юридического лица)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="СведФЛИП" type="СведенияФЛИП" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения о физическом лице, индивидуальном предпринимателе</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="СведИНБОЮЛ" type="СведенияИНБОЮЛ" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения об иностранной структуре без образования юридического лица</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ПричинаУдаления" type="Т2000" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Причины удаления ранее направленной информации</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Раздел1.2" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>
+										Раздел 1.2. Сведения о случаях отказа в выполнении распоряжения клиента о совершении операции
+									</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="НомерЗаписи" type="ИдентификаторЗаписи">
+											<xs:annotation>
+												<xs:documentation>Номер записи в ЭС</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ФорматЗаписи" type="Т20">
+											<xs:annotation>
+												<xs:documentation>Формат сообщения</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ТипЗаписи">
+											<xs:annotation>
+												<xs:documentation>Тип записи в ЭС</xs:documentation>
+												<xs:documentation>
+													Значение показателя "7" введено в целях реализации положений 
+													пунктов 13 и 13.1 статьи 7 Федерального закона № 115-ФЗ
+													(в редакции Федерального закона от 30.12.2020 № 536-ФЗ)
+												</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="[1-7]"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="СведОперация" type="Операция">
+											<xs:annotation>
+												<xs:documentation>Сведения об операции</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ТипУчастника">
+											<xs:annotation>
+												<xs:documentation>Тип участника операции (сделки)</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="[1-5]"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="ПризнУчастника" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Признак резидента (нерезидента) участника операции (сделки)</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="0|1"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="СведЮЛ" type="СведенияЮЛ_У" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения о юридическом лице (филиале юридического лица)</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="СведФЛИП" type="СведенияФЛИП_У" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения о физическом лице, индивидуальном предпринимателе</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="СведИНБОЮЛ" type="СведенияИНБОЮЛ_У" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Сведения об иностранной структуре без образования юридического лица</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ПричинаУдаления" type="Т2000" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Причины удаления ранее направленной информации</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Раздел2" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>
+										Раздел 2. Сведения о случае отказа НФО (филиала НФО) в выполнении распоряжения клиента о совершении операций
+									</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="НомерЗаписи" type="ИдентификаторЗаписи">
+											<xs:annotation>
+												<xs:documentation>Номер записи в ЭС</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ФорматЗаписи" type="Т20">
+											<xs:annotation>
+												<xs:documentation>Формат сообщения</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="ТипЗаписи">
+											<xs:annotation>
+												<xs:documentation>Тип записи в ЭС</xs:documentation>
+												<xs:documentation>
+													Значение показателя "7" введено в целях реализации положений 
+													пунктов 13 и 13.1 статьи 7 Федерального закона № 115-ФЗ
+													(в редакции Федерального закона от 30.12.2020 № 536-ФЗ)
+												</xs:documentation>
+											</xs:annotation>
+											<xs:simpleType>
+												<xs:restriction base="xs:string">
+													<xs:pattern value="[1-7]"/>
+												</xs:restriction>
+											</xs:simpleType>
+										</xs:element>
+										<xs:element name="СведОперация" type="Операция">
+											<xs:annotation>
+												<xs:documentation>Сведения об операции</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+										<xs:element name="Участник" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Сведения об участнике операции (сделки)</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="СтатусУчастника">
+														<xs:annotation>
+															<xs:documentation>Код статуса участника операции (сделки)</xs:documentation>
+														</xs:annotation>
+														<xs:simpleType>
+															<xs:restriction base="xs:string">
+																<xs:pattern value="[1-7]"/>
+															</xs:restriction>
+														</xs:simpleType>
+													</xs:element>													
+													<xs:element name="ТипУчастника">
+														<xs:annotation>
+															<xs:documentation>Тип участника операции (сделки)</xs:documentation>
+														</xs:annotation>
+														<xs:simpleType>
+															<xs:restriction base="xs:string">
+																<xs:pattern value="[1-5]"/>
+															</xs:restriction>
+														</xs:simpleType>
+													</xs:element>
+													<xs:element name="ПризнУчастника" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Признак резидента (нерезидента) участника операции (сделки)</xs:documentation>
+														</xs:annotation>
+														<xs:simpleType>
+															<xs:restriction base="xs:string">
+																<xs:pattern value="0|1"/>
+															</xs:restriction>
+														</xs:simpleType>
+													</xs:element>
+													<xs:element name="СведЮЛ" type="СведенияЮЛ_У" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Сведения о юридическом лице (филиале юридического лица)</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="СведФЛИП" type="СведенияФЛИП_У" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Сведения о физическом лице, индивидуальном предпринимателе</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="СведИНБОЮЛ" type="СведенияИНБОЮЛ_У" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>Сведения об иностранной структуре без образования юридического лица</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+										<xs:element name="ПричинаУдаления" type="Т2000" minOccurs="0">
+											<xs:annotation>
+												<xs:documentation>Причины удаления ранее направленной информации</xs:documentation>
+											</xs:annotation>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

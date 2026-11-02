@@ -1,0 +1,51 @@
+test_hidden_rows_and_formulas (test_core.ExcelTests.test_hidden_rows_and_formulas) ... ok
+test_no_silent_truncation (test_core.ExcelTests.test_no_silent_truncation) ... ok
+test_report_text_and_splitting (test_core.ExcelTests.test_report_text_and_splitting) ... ok
+test_template_and_input (test_core.ExcelTests.test_template_and_input) ... ok
+test_control_pairs (test_core.MatchingTests.test_control_pairs) ... ok
+test_damerau (test_core.MatchingTests.test_damerau) ... ok
+test_empty_never_matches (test_core.MatchingTests.test_empty_never_matches) ... ok
+test_no_top_k_limit (test_core.MatchingTests.test_no_top_k_limit) ... ok
+test_normalization (test_core.MatchingTests.test_normalization) ... ok
+test_repeated_words_retained (test_core.MatchingTests.test_repeated_words_retained) ... ok
+test_add_and_close_preserves_other_record (test_core.StateTests.test_add_and_close_preserves_other_record) ... ok
+test_all_close_codes (test_core.StateTests.test_all_close_codes) ... ok
+test_atomic_conflict (test_core.StateTests.test_atomic_conflict) ... ok
+test_correction_replaces_participants (test_core.StateTests.test_correction_replaces_participants) ... ok
+test_duplicate_no_history (test_core.StateTests.test_duplicate_no_history) ... ok
+test_invalid_code_and_org (test_core.StateTests.test_invalid_code_and_org) ... ok
+test_missing_close (test_core.StateTests.test_missing_close) ... ok
+test_missing_correction (test_core.StateTests.test_missing_correction) ... ok
+test_no_silent_reopening (test_core.StateTests.test_no_silent_reopening) ... ok
+test_dtd_forbidden (test_core.XMLTests.test_dtd_forbidden) ... ok
+test_malformed (test_core.XMLTests.test_malformed) ... ok
+test_missing_schema_blocks (test_core.XMLTests.test_missing_schema_blocks) ... ok
+test_sequence (test_core.XMLTests.test_sequence) ... ok
+test_unknown_namespace (test_core.XMLTests.test_unknown_namespace) ... ok
+test_utf8_bom (test_core.XMLTests.test_utf8_bom) ... ok
+test_wrong_encoding (test_core.XMLTests.test_wrong_encoding) ... ok
+test_all_sections_versions (test_integration.IntegrationTests.test_all_sections_versions) ... ok
+test_bad_file_rolls_back_entire_package (test_integration.IntegrationTests.test_bad_file_rolls_back_entire_package) ... ok
+test_changed_content_same_message_conflicts (test_integration.IntegrationTests.test_changed_content_same_message_conflicts) ... ok
+test_different_ids_do_not_hide_name_match (test_integration.IntegrationTests.test_different_ids_do_not_hide_name_match) ... ok
+test_display_sheet_tamper_detected (test_integration.IntegrationTests.test_display_sheet_tamper_detected) ... ok
+test_duplicate_renamed (test_integration.IntegrationTests.test_duplicate_renamed) ... ok
+test_empty_message (test_integration.IntegrationTests.test_empty_message) ... ok
+test_end_to_end_repeat_and_close (test_integration.IntegrationTests.test_end_to_end_repeat_and_close) ... ok
+test_index_recall (test_integration.IntegrationTests.test_index_recall) ... ok
+test_multiple_participants_all_matched (test_integration.IntegrationTests.test_multiple_participants_all_matched) ... ok
+test_no_data_reports_error (test_integration.IntegrationTests.test_no_data_reports_error) ... ok
+test_commit (test_transaction.TransactionTests.test_commit) ... ok
+test_crash_after_replace (test_transaction.TransactionTests.test_crash_after_replace) ... ok
+test_crash_before_replace (test_transaction.TransactionTests.test_crash_before_replace) ... ok
+test_exclusive_lock (test_transaction.TransactionTests.test_exclusive_lock) ... ok
+test_input_change_blocks (test_transaction.TransactionTests.test_input_change_blocks) ... ok
+test_lost_report_rolls_back_master (test_transaction.TransactionTests.test_lost_report_rolls_back_master) ... ok
+test_path_escape (test_transaction.TransactionTests.test_path_escape) ... ok
+test_report_change_blocks (test_transaction.TransactionTests.test_report_change_blocks) ... ok
+test_unknown_master_blocks_recovery (test_transaction.TransactionTests.test_unknown_master_blocks_recovery) ... ok
+
+----------------------------------------------------------------------
+Ran 46 tests in 1.144s
+
+OK
