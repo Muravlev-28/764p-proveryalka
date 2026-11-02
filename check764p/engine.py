@@ -88,7 +88,7 @@ def run(root, config, schemas, progress=lambda x:None):
                 except Exception:
                     f['status']='Ошибка';f['reason']='Некорректный XML';raise
                 if parsed.tag!='СообщОтказ_115ФЗ':
-                    if path.name.upper().startswith('CB_ES550P_'):
+                    if path.name.upper().startswith('CB_ES550P_') or parsed.tag.rsplit('}',1)[-1]=='СообщОтказ_115ФЗ':
                         raise ValueError(f'Неизвестный профиль целевого XML: {path.name}')
                     f['reason']='XML другого назначения';continue
                 try:

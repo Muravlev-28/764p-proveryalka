@@ -40,8 +40,10 @@ test_index_recall (test_integration.IntegrationTests.test_index_recall) ... ok
 test_mapped_extra_columns_and_hidden_rows (test_integration.IntegrationTests.test_mapped_extra_columns_and_hidden_rows) ... ok
 test_multiple_participants_all_matched (test_integration.IntegrationTests.test_multiple_participants_all_matched) ... ok
 test_no_data_reports_error (test_integration.IntegrationTests.test_no_data_reports_error) ... ok
+test_record_number_case_does_not_create_conflict (test_integration.IntegrationTests.test_record_number_case_does_not_create_conflict) ... ok
 test_schema_integrity (test_integration.IntegrationTests.test_schema_integrity) ... ok
 test_streamed_report_overflow_keeps_full_text (test_integration.IntegrationTests.test_streamed_report_overflow_keeps_full_text) ... ok
+test_unknown_namespace_with_lost_name_is_not_silently_skipped (test_integration.IntegrationTests.test_unknown_namespace_with_lost_name_is_not_silently_skipped) ... ok
 test_commit (test_transaction.TransactionTests.test_commit) ... ok
 test_crash_after_replace (test_transaction.TransactionTests.test_crash_after_replace) ... ok
 test_crash_before_replace (test_transaction.TransactionTests.test_crash_before_replace) ... ok
@@ -54,6 +56,6 @@ test_report_only_recovery (test_transaction.TransactionTests.test_report_only_re
 test_unknown_master_blocks_recovery (test_transaction.TransactionTests.test_unknown_master_blocks_recovery) ... ok
 
 ----------------------------------------------------------------------
-Ran 54 tests in 0.991s
+Ran 56 tests in 1.094s
 
 OK

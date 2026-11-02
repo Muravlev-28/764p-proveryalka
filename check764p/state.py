@@ -32,9 +32,11 @@ def significant(data):
     result = deepcopy(data)
     result.pop('source', None)
     result.pop('code', None)
+    if 'number' in result:result['number']=result['number'].upper()
     # XPath indexes and event codes are provenance, not substantive record data.
     for field in result.get('fields', []):
         field.pop('path', None)
+        if field.get('name')=='НомерЗаписи':field['value']=field['value'].upper()
     result['fields'] = [f for f in result.get('fields', []) if f['name'] != 'ТипЗаписи']
     for participant in result.get('participants', []):
         for diagnostic in ('quality','type_text','role_text'):

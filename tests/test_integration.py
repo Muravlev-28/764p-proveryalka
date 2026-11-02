@@ -178,3 +178,19 @@ class IntegrationTests(unittest.TestCase):
         projected,actions=apply(state,[b],'r2')
         self.assertEqual(actions[0]['action'],'SKIP')
         self.assertEqual(len(projected.history),1)
+
+    def test_record_number_case_does_not_create_conflict(self):
+        from check764p.state import State,apply,Event
+        a=Event('НФО','Раздел2','abc',1,{'number':'abc','participants':[{'names':['Пример']}],'fields':[{'name':'НомерЗаписи','value':'abc'}]},{'sha256':'1'})
+        state,_=apply(State(),[a],'r1')
+        b=Event('НФО','Раздел2','ABC',1,{'number':'ABC','participants':[{'names':['Пример']}],'fields':[{'name':'НомерЗаписи','value':'ABC'}]},{'sha256':'2'})
+        projected,actions=apply(state,[b],'r2')
+        self.assertEqual(actions[0]['action'],'SKIP')
+        self.assertEqual(len(projected.history),1)
+
+    def test_unknown_namespace_with_lost_name_is_not_silently_skipped(self):
+        self.xml();self.assertTrue(self.run_app()['ok'])
+        before=digest(self.root/MASTER_NAME)
+        (self.root/'переименованный.xml').write_text('<СообщОтказ_115ФЗ xmlns="urn:unknown"/>',encoding='utf-8')
+        result=self.run_app();self.assertFalse(result['ok'])
+        self.assertEqual(before,digest(self.root/MASTER_NAME))

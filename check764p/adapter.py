@@ -1,5 +1,6 @@
 """Adapter for the original no-namespace 550P schema used by the 764-П workflow."""
 from datetime import datetime
+import re
 from .state import Event
 from .matching import identifier
 
@@ -86,6 +87,8 @@ def events(root, source):
             node_path=f'/СообщОтказ_115ФЗ/ИнформЧасть[{block_index}]/{section}[{section_counts[section]}]'
             if (org == 'КО' and section not in ('Раздел1.1', 'Раздел1.2')) or (org == 'НФО' and section != 'Раздел2'):
                 raise ValueError('Раздел не соответствует ТипОрганизация')
+            if not re.fullmatch(r'[0-9]{4}_[0-9]{3}_(01|02|11)_[0-9a-zA-Z]{16}',node.findtext('НомерЗаписи') or ''):
+                raise ValueError('Недопустимый идентификатор записи')
             code = int(node.findtext('ТипЗаписи'))
             if code not in range(1, 9 if section == 'Раздел1.1' else 8):
                 raise ValueError('Недопустимый ТипЗаписи')
