@@ -133,7 +133,7 @@ def run(root, config, schemas, progress=lambda x:None):
                             'Дубли записей':sum(a.get('warning')=='DUPLICATE_RECORD' for a in actions),
                             'Закрытие отсутствующего':sum(a.get('warning')=='CLOSE_NOT_FOUND' for a in actions),
                             'Проблемных строк':sum(bool(c['issues']) for c in clients),
-                            'Окончание':timestamp()})
+                            'Окончание проверки клиентов':timestamp()})
             from collections import Counter
             for status,count in Counter(row[2] for row in result['clients']).items():summary[f'Клиенты: {status}']=count
             for code in range(4,9): summary[f'Закрыто код {code}']=sum(a['action']=='CLOSE' and a['code']==code for a in actions)
@@ -161,6 +161,8 @@ def run(root, config, schemas, progress=lambda x:None):
                 summary['SHA-256 базы после']=digest(staged_master)
                 summary['Резервная копия']=f'backups/{run_id}.xlsx' if before else 'Первоначальное создание'
                 summary['Итог']='Обновлено'
+                summary['Время подготовки итогового отчёта']=timestamp()
+                summary['Время фактической фиксации']='См. журнал service/run_'+run_id+'.json (этап COMMITTED)'
                 record('Фиксация','PREPARED','Книга и отчёты подготовлены; публикация будет выполнена после замены базы')
                 save_report02(stage2,summary,actions,discovered,log)
                 publications=[(str(stage1.relative_to(root)),str(report1.relative_to(root))),(str(stage2.relative_to(root)),str(report2.relative_to(root)))]
@@ -176,6 +178,7 @@ def run(root, config, schemas, progress=lambda x:None):
                 publications=[(str(stage1.relative_to(root)),str(report1.relative_to(root))),(str(stage2.relative_to(root)),str(report2.relative_to(root)))]
                 tx.prepare_reports(run_id,publications,inputs)
                 tx.commit()
+            summary['Окончание запуска']=timestamp()
             durable_json(root/'service'/f'run_{run_id}.json',dict(summary=summary,log=log))
             return dict(ok=True,run_id=run_id,summary=summary,reports=[str(report1),str(report2)])
     except Exception as exc:

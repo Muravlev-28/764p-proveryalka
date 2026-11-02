@@ -167,3 +167,14 @@ class IntegrationTests(unittest.TestCase):
         from check764p.reports import comparable_date
         self.assertEqual(comparable_date('02.01.2000'),comparable_date('02/01/2000'))
         self.assertEqual(comparable_date('2000-01-02 00:00:00'),comparable_date('02/01/2000'))
+
+    def test_diagnostic_change_is_not_record_conflict(self):
+        from copy import deepcopy
+        from check764p.state import State,apply,Event
+        a=Event('НФО','Раздел2','a',1,{'participants':[{'names':['Пример'],'quality':[]}]},{'sha256':'1'})
+        state,_=apply(State(),[a],'r1')
+        data=deepcopy(a.data);data['participants'][0]['quality']=['Новое диагностическое правило']
+        b=Event('НФО','Раздел2','a',1,data,{'sha256':'2'})
+        projected,actions=apply(state,[b],'r2')
+        self.assertEqual(actions[0]['action'],'SKIP')
+        self.assertEqual(len(projected.history),1)

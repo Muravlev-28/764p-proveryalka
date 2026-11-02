@@ -3,6 +3,7 @@
   "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
   "python": "3.12.14",
   "checks": [
+    "Fuzzy Damerau-Levenshtein candidate search",
     "Schema validation, matching, master, two reports",
     "Repeat is idempotent",
     "Record-specific close and backup",

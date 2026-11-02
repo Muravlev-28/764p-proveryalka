@@ -37,6 +37,8 @@ def significant(data):
         field.pop('path', None)
     result['fields'] = [f for f in result.get('fields', []) if f['name'] != 'ТипЗаписи']
     for participant in result.get('participants', []):
+        for diagnostic in ('quality','type_text','role_text'):
+            participant.pop(diagnostic,None)
         for field in participant.get('fields', []):
             field.pop('path', None)
     return result

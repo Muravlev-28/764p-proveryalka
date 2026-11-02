@@ -15,7 +15,7 @@ def comparable_date(value):
 
 
 NO_MATCH = 'Совпадение в доступных данных не найдено; полнота исходного перечня не подтверждена'
-DETAIL_HEADERS = ['Строка Excel','Исходный текст клиента','Ключ записи','Индекс участника','Имя в перечне','Тип лица','Роль код','Роль','Характер связи','Правила','Дата отказа','Основание отказа','XML','SHA-256','Узел','ТипЗаписи','Значение кода','Состояние после пакета','Источник поиска','Нормализованный клиент','Нормализованный перечень','Ограничения','ID клиента','Расхождения реквизитов']
+DETAIL_HEADERS = ['Строка Excel','Исходный текст клиента','Ключ записи','Индекс участника','Имя в перечне','Тип лица','Роль код','Роль','Характер связи','Правила','Дата отказа','Основание отказа','XML','SHA-256','Узел','ТипЗаписи','Значение кода','Состояние после пакета','Источник поиска','Нормализованный клиент','Нормализованный перечень','Ограничения','ID клиента','Расхождения реквизитов','Приоритет кандидата']
 
 
 def entries(state):
@@ -50,13 +50,14 @@ def check_clients(clients, active_entries, changed_entries, fuzzy=True, progress
                         differences.append(f'{field}: клиент {left}; перечень {right}')
                 conflict |= bool(differences)
                 id_match |= bool(valid_inn(client.get('inn','')) and identifier(client.get('inn'))==identifier(p.get('inn')))
+                priority='1 — Полное нормализованное имя' if normalize(name)==normalize(matched) else '2 — Полное поисковое представление' if any('TOKEN' not in r.rule and 'TYPO' not in r.rule for r in rules) else '3 — Совпавшее слово / часть имени' if any(r.distance==0 for r in rules) else '4 — Близкое написание'
                 row=[str(client['row']),name,'|'.join(p['key']),str(p['index']),matched,p['type_text'],p['role'],role,
                      'Прямое упоминание клиента' if is_direct else f'Упоминание в операции с отказом, роль {role}',
                      json_text([asdict(rule) for rule in rules]),record['refusal_date'],' / '.join(record['refusal_codes']),
                      source['filename'],source['sha256'],source['node'],str(record['code']),CODES[record['code']],
                      'Действует' if source_no==0 or p.get('active') else 'Не действует',
                      'Действующее состояние' if source_no==0 else 'Последний XML' if p.get('latest') else 'Другой XML пакета',
-                     normalize(name),normalize(matched),'Совпадение текста не подтверждает тождество лиц',client.get('id',''),'; '.join(differences)]
+                     normalize(name),normalize(matched),'Совпадение текста не подтверждает тождество лиц',client.get('id',''),'; '.join(differences),priority]
                 (active_results if source_no==0 else changes).append(row)
                 counts[source_no]+=1
                 matched_clients.add(client['row'])
@@ -75,6 +76,8 @@ def check_clients(clients, active_entries, changed_entries, fuzzy=True, progress
         summary.append([str(client['row']),' / '.join(client['values']),status,str(counts[0]),str(counts[1]),'; '.join(issues),NO_MATCH if not any(counts) else 'Требуется ручная проверка',client.get('id',''),json_text(client.get('raw',{}))])
         quality.extend([str(client['row']),issue] for issue in issues)
         if n%100==0: progress(f'Проверено клиентов: {n+1} из {len(clients)}')
+    for detail in (active_results,changes):
+        detail.sort(key=lambda row:(int(row[0]),row[-1],row[2],int(row[3])))
     return dict(clients=summary,active=active_results,changes=changes,quality=quality,
                 matched=len(matched_clients),direct=len(direct),participant_only=len(participant_only))
 

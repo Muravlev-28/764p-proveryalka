@@ -35,15 +35,32 @@ jobs:
         shell: pwsh
         run: |
           Remove-Item ./dist/self-test-result.json -ErrorAction SilentlyContinue
-          $process = Start-Process -FilePath ./dist/Check764P.exe -ArgumentList '--self-test','--gui-smoke' -PassThru
-          if (!$process.WaitForExit(180000)) { $process.Kill(); throw 'Packaged self-test timeout.' }
-          $process.Refresh()
-          if ($process.ExitCode -ne 0) { throw 'Packaged application self-test failed.' }
-          if (!(Test-Path 'dist/self-test-result.json')) { throw 'Packaged self-test evidence is missing.' }
-          $evidence = Get-Content ./dist/self-test-result.json -Raw | ConvertFrom-Json
-          if (!$evidence.ok) { throw 'Packaged self-test reported failure.' }
+          $ruleName = 'Check764P-offline-' + [guid]::NewGuid().ToString()
+          $exePath = (Resolve-Path ./dist/Check764P.exe).Path
+          New-NetFirewallRule -DisplayName $ruleName -Direction Outbound -Program $exePath -Action Block -Profile Any | Out-Null
+          try {
+            $process = Start-Process -FilePath ./dist/Check764P.exe -ArgumentList '--self-test','--gui-smoke' -PassThru
+            if (!$process.WaitForExit(180000)) { $process.Kill(); throw 'Packaged self-test timeout.' }
+            $process.Refresh()
+            if ($process.ExitCode -ne 0) { throw 'Packaged application self-test failed.' }
+            if (!(Test-Path 'dist/self-test-result.json')) { throw 'Packaged self-test evidence is missing.' }
+            $evidence = Get-Content ./dist/self-test-result.json -Raw | ConvertFrom-Json
+            if (!$evidence.ok) { throw 'Packaged self-test reported failure.' }
+          } finally {
+            Get-NetFirewallRule -DisplayName $ruleName | Remove-NetFirewallRule
+          }
           Get-FileHash ./dist/Check764P.exe -Algorithm SHA256 | Format-List | Out-File ./dist/Check764P.sha256.txt
           python -m pip freeze | Out-File ./dist/build-dependencies.txt
+      - name: Publish self-test evidence in job summary
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path ./dist/self-test-result.json) {
+            '## Packaged application self-test' >> $env:GITHUB_STEP_SUMMARY
+            '```json' >> $env:GITHUB_STEP_SUMMARY
+            Get-Content ./dist/self-test-result.json >> $env:GITHUB_STEP_SUMMARY
+            '```' >> $env:GITHUB_STEP_SUMMARY
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: Check764P-Windows-x64

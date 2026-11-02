@@ -13,6 +13,9 @@ from .transaction import digest
 def self_test(workdir,schemas,gui=False):
     report={'ok':False,'platform':platform.platform(),'python':platform.python_version(),'checks':[]}
     try:
+        from .matching import candidates
+        if not candidates('Примеров','Примеорв',fuzzy=True):raise RuntimeError('Fuzzy search failed')
+        report['checks'].append('Fuzzy Damerau-Levenshtein candidate search')
         with tempfile.TemporaryDirectory(prefix='Самопроверка ',dir=workdir) as temp:
             folder=Path(temp)
             template(folder/'клиенты.xlsx')

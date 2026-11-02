@@ -30,6 +30,7 @@ test_bad_file_rolls_back_entire_package (test_integration.IntegrationTests.test_
 test_calendar_date_rejected (test_integration.IntegrationTests.test_calendar_date_rejected) ... ok
 test_changed_content_same_message_conflicts (test_integration.IntegrationTests.test_changed_content_same_message_conflicts) ... ok
 test_dates_normalized_without_false_conflict (test_integration.IntegrationTests.test_dates_normalized_without_false_conflict) ... ok
+test_diagnostic_change_is_not_record_conflict (test_integration.IntegrationTests.test_diagnostic_change_is_not_record_conflict) ... ok
 test_different_ids_do_not_hide_name_match (test_integration.IntegrationTests.test_different_ids_do_not_hide_name_match) ... ok
 test_display_sheet_tamper_detected (test_integration.IntegrationTests.test_display_sheet_tamper_detected) ... ok
 test_duplicate_renamed (test_integration.IntegrationTests.test_duplicate_renamed) ... ok
@@ -53,6 +54,6 @@ test_report_only_recovery (test_transaction.TransactionTests.test_report_only_re
 test_unknown_master_blocks_recovery (test_transaction.TransactionTests.test_unknown_master_blocks_recovery) ... ok
 
 ----------------------------------------------------------------------
-Ran 53 tests in 1.129s
+Ran 54 tests in 0.991s
 
 OK
