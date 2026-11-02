@@ -101,8 +101,45 @@ class Transaction:
         durable_json(self.journal, data)
         return data
 
+    def prepare_reports(self, run_id, reports, inputs):
+        if self.journal.exists():
+            raise RuntimeError('Сначала восстановите незавершённую транзакцию')
+        if not run_id or any(c not in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-' for c in run_id):
+            raise ValueError('Небезопасный run_id')
+        data=dict(mode='reports',run_id=run_id,stage='PREPARED',inputs=inputs,reports=[])
+        for source,target in reports:
+            if self.path(target).exists():raise FileExistsError(target)
+            data['reports'].append(dict(source=source,target=target,sha256=digest(self.path(source))))
+        durable_json(self.journal,data)
+
+    def _recover_reports(self,data):
+        outcome='ABORTED'
+        if data['stage']=='REPORTS_READY':
+            for report in data['reports']:
+                target,source=self.path(report['target']),self.path(report['source'])
+                if target.exists():
+                    if digest(target)!=report['sha256']:raise RuntimeError('Конфликт опубликованного отчёта')
+                elif not source.exists() or digest(source)!=report['sha256']:
+                    raise RuntimeError('Подготовленный отчёт утрачен; сохраните папку и журнал для восстановления')
+                else:
+                    target.parent.mkdir(parents=True,exist_ok=True)
+                    os.replace(source,target)
+            outcome='REPORTS_PUBLISHED'
+        data['stage']=outcome
+        durable_json(self.journal,data)
+        history=self.root/'service'/'transactions';history.mkdir(exist_ok=True)
+        os.replace(self.journal,history/(data['run_id']+'.json'))
+        return outcome
+
     def commit(self):
         data = json.loads(self.journal.read_text(encoding='utf-8'))
+        if data.get('mode')=='reports':
+            for name,expected in data['inputs'].items():
+                if digest(self.path(name))!=expected:raise RuntimeError(f'Входной файл изменился: {name}')
+            for report in data['reports']:
+                if digest(self.path(report['source']))!=report['sha256']:raise RuntimeError('Подготовленный отчёт изменился')
+            data['stage']='REPORTS_READY';durable_json(self.journal,data)
+            return self.recover()
         master = self.path(data['master'])
         for name, expected in data['inputs'].items():
             if digest(self.path(name)) != expected:
@@ -121,6 +158,7 @@ class Transaction:
         if not self.journal.exists():
             return 'NOTHING'
         data = json.loads(self.journal.read_text(encoding='utf-8'))
+        if data.get('mode')=='reports':return self._recover_reports(data)
         master = self.path(data['master'])
         actual = digest(master) if master.exists() else None
         if actual == data['after']:

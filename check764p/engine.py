@@ -5,9 +5,12 @@ from hashlib import sha256
 from uuid import uuid4
 import os
 import shutil
+import time
 from .xml_input import schema, parse_bytes, validate, order_messages
 from .adapter import events
-from .state import State, apply
+from .state import State, apply, EVENT_VERSION
+from .matching import RULES_VERSION, NORMALIZATION_VERSION
+from . import __version__
 from .master import MASTER_NAME, read_master, write_master, people
 from .excel import read_clients
 from .reports import entries,event_entries,check_clients,save_report01,save_report02
@@ -26,13 +29,15 @@ def run(root, config, schemas, progress=lambda x:None):
     root=Path(root).resolve()
     run_id=datetime.now().astimezone().strftime('%Y%m%d_%H%M%S_')+uuid4().hex[:8]
     log=[]; discovered=[]; actions=[]; result=empty_results()
-    summary={'run_id':run_id,'Начало':timestamp(),'Покрытие':'Частичное','Проверка':'Не выполнена'}
+    summary={'run_id':run_id,'Начало':timestamp(),'Покрытие':'Частичное','Проверка':'Не выполнена','Версия программы':__version__,'Версия нормализации':NORMALIZATION_VERSION,'Версия сопоставления':RULES_VERSION,'Версия событий':EVENT_VERSION}
     report_dir=root/'Результаты проверки'/run_id
     report1=report_dir/f'01_ПроверкаКлиентов_{run_id}.xlsx'
     report2=report_dir/f'02_ОбновлениеБазы_{run_id}.xlsx'
     committed=False
+    started=time.perf_counter()
     def record(stage,code,message,level='INFO'):
         log.append([timestamp(),stage,level,code,message]); progress(message)
+        summary[f'Время этапа {code}, с']=round(time.perf_counter()-started,3)
     try:
         with DirectoryLock(root):
             tx=Transaction(root)
@@ -93,6 +98,7 @@ def run(root, config, schemas, progress=lambda x:None):
                 except Exception as exc:
                     f.update(status='Ошибка',reason=str(exc));raise
                 incoming.append(f); event_map[h]=(ev,raw)
+            record('XML','PARSED','XML проверены; построение проекта базы')
             pending=order_messages(incoming,accepted)
             pending_hashes={f['sha256'] for f in pending}
             for f in incoming:
@@ -108,7 +114,7 @@ def run(root, config, schemas, progress=lambda x:None):
                 parsed,_,_=validate(raw,last['filename'],validator)
                 searchable.extend(events(parsed,last))
                 inputs[last['archive']]=last['sha256']
-            clients,skipped=read_clients(client_path,config['sheet'],config['columns'],config.get('header_row',3))
+            clients,skipped=read_clients(client_path,config['sheet'],config['columns'],config.get('header_row',3),config.get('extra_columns'))
             record('Проверка','MATCH','Сопоставление клиентов с XML и действующим состоянием')
             result=check_clients(clients,entries(projected),event_entries(searchable,projected.active,last['sha256'] if last else ''),config.get('fuzzy',True),progress)
             for key,data in projected.active.items():
@@ -145,12 +151,13 @@ def run(root, config, schemas, progress=lambda x:None):
                             stream.write(raw);stream.flush();os.fsync(stream.fileno())
                     f.update(status='Применён',run_id=run_id,accepted_at=timestamp(),events=len(ev))
                     next_files.append(dict(f))
-                meta.update(last_message=list(last['order']) if last else None,last_run=run_id)
+                meta.update(last_message=list(last['order']) if last else None,last_run=run_id,app_version=__version__,normalization_version=NORMALIZATION_VERSION,matching_version=RULES_VERSION,event_version=EVENT_VERSION)
                 staged_master=staging/MASTER_NAME
                 write_master(staged_master,projected,next_files,meta)
                 verified,verified_files,_=read_master(staged_master)
                 if len(verified.active)!=len(projected.active) or len(verified_files)!=len(next_files):
                     raise ValueError('Проверка новой книги не прошла')
+                record('Книга','VERIFIED','Подготовленная книга записана и повторно проверена')
                 summary['SHA-256 базы после']=digest(staged_master)
                 summary['Резервная копия']=f'backups/{run_id}.xlsx' if before else 'Первоначальное создание'
                 summary['Итог']='Обновлено'
@@ -166,7 +173,9 @@ def run(root, config, schemas, progress=lambda x:None):
                 save_report02(stage2,summary,actions,discovered,log)
                 for name,h in inputs.items():
                     if digest(root/name)!=h: raise ValueError('Входные файлы изменились во время проверки')
-                os.replace(stage1,report1);os.replace(stage2,report2)
+                publications=[(str(stage1.relative_to(root)),str(report1.relative_to(root))),(str(stage2.relative_to(root)),str(report2.relative_to(root)))]
+                tx.prepare_reports(run_id,publications,inputs)
+                tx.commit()
             durable_json(root/'service'/f'run_{run_id}.json',dict(summary=summary,log=log))
             return dict(ok=True,run_id=run_id,summary=summary,reports=[str(report1),str(report2)])
     except Exception as exc:
@@ -177,7 +186,7 @@ def run(root, config, schemas, progress=lambda x:None):
             import json
             try:
                 transaction=json.loads(journal.read_text(encoding='utf-8'))
-                pending_commit=(root/MASTER_NAME).exists() and digest(root/MASTER_NAME)==transaction['after']
+                pending_commit=transaction.get('stage')=='REPORTS_READY' if transaction.get('mode')=='reports' else (root/MASTER_NAME).exists() and digest(root/MASTER_NAME)==transaction['after']
             except Exception: pending_commit=True
         message=str(exc)
         record('Ошибка','ERROR',message,'ERROR')

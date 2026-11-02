@@ -1,13 +1,15 @@
 """The XLSX workbook contains all canonical state; no external database is used."""
 import hashlib
 import json
+import base64
+import zlib
 from collections import Counter
 from openpyxl import load_workbook
 from .state import State
 from .adapter import PROFILE, person_key
 from .workbooks import write, rows, json_text
 
-STRUCTURE_VERSION = '1'
+STRUCTURE_VERSION = '2'
 MASTER_NAME = 'Перечень 764-П.xlsx'
 
 
@@ -56,8 +58,9 @@ def write_master(path,state,files,metadata):
         for n,item in enumerate(canonical_items(state,files)):
             text = json_text(item)
             checksum.update((text+'\n').encode())
-            for i in range(0,len(text),10000):
-                yield [str(n),str(i//10000),text[i:i+10000]]
+            packed='Z:'+base64.b64encode(zlib.compress(text.encode('utf-8'),1)).decode('ascii')
+            for i in range(0,len(packed),10000):
+                yield [str(n),str(i//10000),packed[i:i+10000]]
     def active():
         for key,d in state.active.items():
             yield ['|'.join(key),key[0],key[1],d.get('number',key[2]),d.get('format',''),str(d.get('code','')),
@@ -75,7 +78,7 @@ def write_master(path,state,files,metadata):
         for key,value in all_meta.items():
             yield [key,json_text(value)]
     tables={
-        'Данные': (['Объект','Часть','JSON'],chunks()),
+        'Данные': (['Объект','Часть','JSON (Z: = zlib/base64)'],chunks()),
         'АктивныеЗаписи': (['Ключ','ТипОрганизация','Раздел','НомерЗаписи','ФорматЗаписи','ТипЗаписи','ДатаОтказа','КодОтказа','Причины','XML','SHA-256','Узел'],active()),
         'Участники': (['Ключ','Индекс','Тип','Тип лица','Имя','ИНН','ДатаРождения','Документ','Роль','Расшифровка','Прямое упоминание'],participant_rows(state)),
         'ДействующиеЛица': (['Ключ лица','Имена','Действующих записей','Роли','Статусы'],([pid,' / '.join(sorted(p['names'])),str(len(p['records'])),' / '.join(sorted(p['roles'])),' / '.join(sorted(p['types']))] for pid,p in people(state).items())),
@@ -93,7 +96,7 @@ def read_master(path):
     book = load_workbook(path,read_only=True,data_only=False,keep_links=False)
     try:
         metadata = {k:json.loads(v) for k,v in rows(book,'Метаданные')}
-        if metadata.get('structure') != STRUCTURE_VERSION or metadata.get('profile') != PROFILE:
+        if metadata.get('structure') not in ('1',STRUCTURE_VERSION) or metadata.get('profile') != PROFILE:
             raise ValueError('Неподдерживаемая структура или профиль накопленной базы')
         state, files = State(), []
         checksum = hashlib.sha256()
@@ -101,7 +104,10 @@ def read_master(path):
         def consume():
             if current is None:
                 return
-            text = ''.join(chunks); checksum.update((text+'\n').encode())
+            text = ''.join(chunks)
+            if text.startswith('Z:'):
+                text=zlib.decompress(base64.b64decode(text[2:],validate=True)).decode('utf-8')
+            checksum.update((text+'\n').encode())
             kind,key,value = json.loads(text)
             if kind == 'active':
                 if tuple(key) in state.active: raise ValueError('Повтор ключа в базе')

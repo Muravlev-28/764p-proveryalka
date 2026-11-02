@@ -27,7 +27,9 @@ def write(path, tables, max_rows=MAX_ROWS):
         if parent.name in ('service','Результаты проверки'):
             working=parent.parent
             break
+    body_style=None
     def text_row(ws, row, headers=None):
+        nonlocal body_style
         cells = []
         row=list(row)
         source_hash=''
@@ -49,7 +51,11 @@ def write(path, tables, max_rows=MAX_ROWS):
             cell.data_type = 's'
             if archive_link and (str(value)==source_hash or len(str(value).encode('utf-16-le'))>60000):
                 cell.hyperlink=archive_link
-            cell.alignment = Alignment(wrap_text=True, vertical='top')
+            if body_style is None:
+                cell.alignment = Alignment(wrap_text=True, vertical='top')
+                body_style=cell._style
+            else:
+                cell._style=body_style
             cells.append(cell)
         ws.append(cells)
     def sheet(title, headers):

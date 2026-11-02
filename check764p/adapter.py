@@ -15,13 +15,25 @@ CODES = {1: 'Первичное направление', 2: 'Первичное 
 PROFILE = 'FSFM550P/no-namespace/1.1-1.2'
 
 
-def leaf_fields(node):
-    tree = node.getroottree()
-    return [{'path': tree.getpath(x), 'name': x.tag, 'value': x.text or ''}
-            for x in node.iter() if isinstance(x.tag, str) and len(x) == 0]
+def leaf_fields(node, base_path=None):
+    # Construct valid absolute XPath in linear time: getpath() repeatedly scans
+    # all preceding siblings in large messages.
+    base_path = base_path or node.getroottree().getpath(node)
+    result=[]
+    def walk(current,path):
+        if len(current)==0:
+            result.append(dict(path=path,name=current.tag,value=current.text or ''))
+            return
+        counters={}
+        for child in current:
+            if not isinstance(child.tag,str):continue
+            counters[child.tag]=counters.get(child.tag,0)+1
+            walk(child,f'{path}/{child.tag}[{counters[child.tag]}]')
+    walk(node,base_path)
+    return result
 
 
-def participant(node, index, direct=False):
+def participant(node, index, direct=False, path=None):
     kind = node.findtext('ТипКлиента') or node.findtext('ТипУчастника')
     expected = 'СведЮЛ' if kind == '1' else 'СведФЛИП' if kind in ('2', '3', '4') else 'СведИНБОЮЛ'
     blocks = [node.find(t) for t in ('СведЮЛ', 'СведФЛИП', 'СведИНБОЮЛ') if node.find(t) is not None]
@@ -39,14 +51,14 @@ def participant(node, index, direct=False):
         if text:
             names.append(text)
     role = '0' if direct else node.findtext('СтатусУчастника')
-    fields = leaf_fields(block)
+    fields = leaf_fields(block, (path+'/'+expected+'[1]') if path else None)
     def first(*tags):
         return next((x['value'] for tag in tags for x in fields if x['name'] == tag and x['value']), '')
     return dict(index=index, type=kind, type_text=TYPES[kind], names=list(dict.fromkeys(names)),
                 role=role, role_text=ROLES[role], direct=direct, fields=fields,
                 inn=first('ИННЮЛ', 'ИННФЛИП'), ogrn=first('ОГРНЮЛ', 'ОГРНИП'),
                 birth=first('ДатаРождения'), document='|'.join(first(t) for t in ('ВидДокКод','СерияДок','НомДок')),
-                quality=[] if names else ['Имя отсутствует; поиск по имени недоступен'])
+                quality=([] if names else ['Имя отсутствует; поиск по имени недоступен']) + (['Некорректный ИНН; лицо не объединяется по этому идентификатору'] if first('ИННЮЛ','ИННФЛИП') and not valid_inn(first('ИННЮЛ','ИННФЛИП')) else []))
 
 
 def events(root, source):
@@ -60,27 +72,30 @@ def events(root, source):
                 datetime.strptime(element.text, '%d/%m/%Y')
             except ValueError as exc:
                 raise ValueError(f'Некорректная календарная дата: {element.tag}') from exc
-    for block in root.findall('ИнформЧасть'):
+    for block_index,block in enumerate(root.findall('ИнформЧасть'),1):
         org = block.findtext('ТипОрганизация')
         if org in organizations:
             raise ValueError('Повтор информационного блока одного типа организации')
         organizations.add(org)
+        section_counts={}
         for node in block:
             if node.tag == 'ТипОрганизация':
                 continue
             section = node.tag
+            section_counts[section]=section_counts.get(section,0)+1
+            node_path=f'/СообщОтказ_115ФЗ/ИнформЧасть[{block_index}]/{section}[{section_counts[section]}]'
             if (org == 'КО' and section not in ('Раздел1.1', 'Раздел1.2')) or (org == 'НФО' and section != 'Раздел2'):
                 raise ValueError('Раздел не соответствует ТипОрганизация')
             code = int(node.findtext('ТипЗаписи'))
             if code not in range(1, 9 if section == 'Раздел1.1' else 8):
                 raise ValueError('Недопустимый ТипЗаписи')
-            participants = [participant(p, i) for i, p in enumerate(node.findall('Участник'), 1)] if section == 'Раздел2' else [participant(node, 1, True)]
-            provenance = dict(source, node=root.getroottree().getpath(node))
+            participants = [participant(p, i, path=f'{node_path}/Участник[{i}]') for i, p in enumerate(node.findall('Участник'), 1)] if section == 'Раздел2' else [participant(node, 1, True, node_path)]
+            provenance = dict(source, node=node_path)
             data = dict(number=node.findtext('НомерЗаписи'), format=node.findtext('ФорматЗаписи'),
                         code=code, participants=participants,
                         refusal_date=node.findtext('ДатаОтказа') or node.findtext('СведОперация/ДатаОтказа'),
                         refusal_codes=node.xpath('.//КодОтказа/text()'), reasons=node.xpath('.//КодПричинаОтказ/text()'),
-                        removal_reason=node.findtext('ПричинаУдаления') or '', fields=leaf_fields(node), source=provenance)
+                        removal_reason=node.findtext('ПричинаУдаления') or '', fields=leaf_fields(node,node_path), source=provenance)
             result.append(Event(org, section, data['number'], code, data, provenance))
     return result
 

@@ -67,3 +67,13 @@ class TransactionTests(unittest.TestCase):
         (self.root/'report.xlsx').unlink()
         self.assertEqual(self.tx.recover(),'ROLLED_BACK')
         self.assertEqual((self.root/'master.xlsx').read_text(),'old')
+
+    def test_report_only_recovery(self):
+        from check764p.transaction import durable_json
+        import json
+        before=digest(self.root/'master.xlsx')
+        self.tx.prepare_reports('run1',[('report.xlsx','results/report.xlsx')],{'master.xlsx':before})
+        data=json.loads(self.tx.journal.read_text());data['stage']='REPORTS_READY';durable_json(self.tx.journal,data)
+        self.assertEqual(self.tx.recover(),'REPORTS_PUBLISHED')
+        self.assertEqual(digest(self.root/'master.xlsx'),before)
+        self.assertTrue((self.root/'results/report.xlsx').exists())

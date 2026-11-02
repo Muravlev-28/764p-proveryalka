@@ -5,6 +5,15 @@ from .adapter import CODES, valid_inn
 from .matching import identifier
 from . import __version__
 
+def comparable_date(value):
+    from datetime import datetime
+    text=str(value).strip()
+    for fmt in ('%d/%m/%Y','%d.%m.%Y','%Y-%m-%d','%Y-%m-%d %H:%M:%S'):
+        try:return datetime.strptime(text,fmt).date().isoformat()
+        except ValueError:pass
+    return text
+
+
 NO_MATCH = 'Совпадение в доступных данных не найдено; полнота исходного перечня не подтверждена'
 DETAIL_HEADERS = ['Строка Excel','Исходный текст клиента','Ключ записи','Индекс участника','Имя в перечне','Тип лица','Роль код','Роль','Характер связи','Правила','Дата отказа','Основание отказа','XML','SHA-256','Узел','ТипЗаписи','Значение кода','Состояние после пакета','Источник поиска','Нормализованный клиент','Нормализованный перечень','Ограничения','ID клиента','Расхождения реквизитов']
 
@@ -19,42 +28,43 @@ def event_entries(events, active, latest):
 
 
 def check_clients(clients, active_entries, changed_entries, fuzzy=True, progress=lambda x:None):
-    current = CandidateIndex(active_entries,fuzzy)
-    changed = CandidateIndex(changed_entries,fuzzy)
+    index = CandidateIndex([dict(p, _group=0) for p in active_entries] + [dict(p, _group=1) for p in changed_entries], fuzzy)
     active_results, changes, summary, quality = [], [], [], []
     matched_clients, direct, participant_only = set(),set(),set()
     for n,client in enumerate(clients):
         counts=[0,0]; has_direct=False; has_indirect=False; conflict=False; id_match=False
         seen=[set(),set()]
-        for source_no,index in enumerate((current,changed)):
-            for name in client['values']:
-                for p,matched,rules in index.find(name):
-                    record=p['record']; source=record['source']
-                    identity=(tuple(p['key']),p['index'],source['sha256'],name,matched)
-                    if identity in seen[source_no]: continue
-                    seen[source_no].add(identity)
-                    role = p['role_text']; is_direct=p['direct']
-                    differences=[]
-                    for field in ('inn','birth'):
-                        left,right=client.get(field,''),p.get(field,'')
-                        if left and right and identifier(left)!=identifier(right):
-                            differences.append(f'{field}: клиент {left}; перечень {right}')
-                    conflict |= bool(differences)
-                    id_match |= bool(valid_inn(client.get('inn','')) and identifier(client.get('inn'))==identifier(p.get('inn')))
-                    row=[str(client['row']),name,'|'.join(p['key']),str(p['index']),matched,p['type_text'],p['role'],role,
-                         'Прямое упоминание клиента' if is_direct else f'Упоминание в операции с отказом, роль {role}',
-                         json_text([asdict(rule) for rule in rules]),record['refusal_date'],' / '.join(record['refusal_codes']),
-                         source['filename'],source['sha256'],source['node'],str(record['code']),CODES[record['code']],
-                         'Действует' if source_no==0 or p.get('active') else 'Не действует',
-                         'Действующее состояние' if source_no==0 else 'Последний XML' if p.get('latest') else 'Другой XML пакета',
-                         normalize(name),normalize(matched),'Совпадение текста не подтверждает тождество лиц',client.get('id',''),'; '.join(differences)]
-                    (active_results if source_no==0 else changes).append(row)
-                    counts[source_no]+=1
-                    matched_clients.add(client['row'])
-                    has_direct |= is_direct; has_indirect |= not is_direct
+        for name in client['values']:
+            for p,matched,rules in index.find(name):
+                source_no=p['_group']
+                record=p['record']; source=record['source']
+                identity=(tuple(p['key']),p['index'],source['sha256'],name,matched)
+                if identity in seen[source_no]: continue
+                seen[source_no].add(identity)
+                role = p['role_text']; is_direct=p['direct']
+                differences=[]
+                for field in ('inn','birth'):
+                    left,right=client.get(field,''),p.get(field,'')
+                    same=comparable_date(left)==comparable_date(right) if field=='birth' else identifier(left)==identifier(right)
+                    if left and right and not same:
+                        differences.append(f'{field}: клиент {left}; перечень {right}')
+                conflict |= bool(differences)
+                id_match |= bool(valid_inn(client.get('inn','')) and identifier(client.get('inn'))==identifier(p.get('inn')))
+                row=[str(client['row']),name,'|'.join(p['key']),str(p['index']),matched,p['type_text'],p['role'],role,
+                     'Прямое упоминание клиента' if is_direct else f'Упоминание в операции с отказом, роль {role}',
+                     json_text([asdict(rule) for rule in rules]),record['refusal_date'],' / '.join(record['refusal_codes']),
+                     source['filename'],source['sha256'],source['node'],str(record['code']),CODES[record['code']],
+                     'Действует' if source_no==0 or p.get('active') else 'Не действует',
+                     'Действующее состояние' if source_no==0 else 'Последний XML' if p.get('latest') else 'Другой XML пакета',
+                     normalize(name),normalize(matched),'Совпадение текста не подтверждает тождество лиц',client.get('id',''),'; '.join(differences)]
+                (active_results if source_no==0 else changes).append(row)
+                counts[source_no]+=1
+                matched_clients.add(client['row'])
+                has_direct |= is_direct; has_indirect |= not is_direct
         if has_direct: direct.add(client['row'])
         elif has_indirect: participant_only.add(client['row'])
         issues=list(client['issues'])
+        if client.get('inn') and not valid_inn(client['inn']):issues.append('Некорректный ИНН: сопоставление по идентификатору недоступно, поиск по имени выполнен')
         if any(len(normalize(v).split()) < 2 for v in client['values']):
             issues.append('Короткое или неполное имя: выполнен поиск по доступным данным')
         if any(counts): status='Кандидат по имени'

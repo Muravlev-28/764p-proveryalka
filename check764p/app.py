@@ -19,7 +19,7 @@ def locations():
     return Path(__file__).resolve().parents[1],Path(__file__).resolve().parents[1]/'schemas'
 
 
-def gui(rootdir,schemas):
+def gui(rootdir,schemas,smoke=False):
     import tkinter as tk
     from tkinter import ttk,filedialog,messagebox
     from openpyxl import load_workbook
@@ -34,14 +34,15 @@ def gui(rootdir,schemas):
     report_button=ttk.Button(buttons,text='Открыть папку отчётов',state='disabled');report_button.pack(side='left')
     config_button=ttk.Button(buttons,text='Настройки и повторная проверка');config_button.pack(side='left',padx=8)
     ttk.Button(buttons,text='Закрыть',command=lambda:close()).pack(side='right')
-    settings_path=rootdir/'service'/'settings.json';messages=queue.Queue();busy=False
+    settings_path=rootdir/'service'/'settings.json';messages=queue.Queue();busy=False;last_outcome={}
 
     def choose_settings(existing):
-        dialog=tk.Toplevel(window);dialog.title('Настройка проверки');dialog.geometry('730x590');dialog.transient(window);dialog.grab_set()
+        dialog=tk.Toplevel(window);dialog.title('Настройка проверки');dialog.geometry('730x700');dialog.transient(window);dialog.grab_set()
         filename=tk.StringVar(value=existing.get('clients',''))
         sheet=tk.StringVar(value=existing.get('sheet',''))
         header=tk.IntVar(value=existing.get('header_row',3));fuzzy=tk.BooleanVar(value=existing.get('fuzzy',True))
-        result={};book_sheets=[];headers=[]
+        result={};book_sheets=[];headers=[];extra_boxes={}
+        extra_vars={k:tk.StringVar(value=existing.get('extra_columns',{}).get(k,'')) for k in ('id','inn','birth','type')}
         ttk.Label(dialog,text='Книга клиентов рядом с программой').pack(anchor='w',padx=15,pady=6)
         line=ttk.Frame(dialog);line.pack(fill='x',padx=15)
         ttk.Entry(line,textvariable=filename).pack(side='left',fill='x',expand=True)
@@ -61,6 +62,7 @@ def gui(rootdir,schemas):
                 finally:book.close()
                 listbox.delete(0,'end')
                 for h in headers:listbox.insert('end',str(h or '(пустой заголовок)'))
+                for box in extra_boxes.values():box['values']=['']+[h for h in headers if h]
                 for i,h in enumerate(headers):
                     if h in existing.get('columns',['Наименование полное']):listbox.selection_set(i)
             except Exception as exc:messagebox.showerror('Чтение заголовков',str(exc),parent=dialog)
@@ -83,13 +85,18 @@ def gui(rootdir,schemas):
         ttk.Button(line,text='Выбрать…',command=browse).pack(side='right')
         ttk.Button(rowline,text='Прочитать заголовки',command=refresh_headers).pack(side='left')
         sheet_box.bind('<<ComboboxSelected>>',refresh_headers)
+        extra_frame=ttk.LabelFrame(dialog,text='Дополнительные поля (не обязательны)');extra_frame.pack(fill='x',padx=15,pady=8)
+        for i,(key,label) in enumerate([('id','ID клиента'),('inn','ИНН'),('birth','Дата рождения'),('type','Тип лица')]):
+            ttk.Label(extra_frame,text=label).grid(row=i//2,column=(i%2)*2,padx=4,pady=2)
+            box=ttk.Combobox(extra_frame,textvariable=extra_vars[key],state='readonly',width=22);box.grid(row=i//2,column=(i%2)*2+1)
+            extra_boxes[key]=box
         ttk.Checkbutton(dialog,text='Нечёткий поиск опечаток (для больших перечней может быть медленным)',variable=fuzzy).pack(anchor='w',padx=15,pady=8)
         ttk.Label(dialog,text='Тип лица, ИНН и ID клиента не обязательны. Поиск выполняется по выбранным текстовым колонкам.',wraplength=690).pack(anchor='w',padx=15)
         def save():
             selected=[headers[i] for i in listbox.curselection()]
             if not selected or any(not h or headers.count(h)!=1 for h in selected):
                 messagebox.showerror('Колонки','Выберите непустые уникальные заголовки.',parent=dialog);return
-            result.update(existing,clients=filename.get(),sheet=sheet.get(),columns=selected,header_row=header.get(),fuzzy=fuzzy.get())
+            result.update(existing,clients=filename.get(),sheet=sheet.get(),columns=selected,header_row=header.get(),fuzzy=fuzzy.get(),extra_columns={key:var.get() for key,var in extra_vars.items() if var.get()})
             dialog.destroy()
         ttk.Button(dialog,text='Сохранить и проверить',command=save).pack(pady=15)
         if filename.get():load_book()
@@ -153,6 +160,8 @@ def gui(rootdir,schemas):
                 if kind=='progress':status.set(data)
                 else:
                     busy=False;bar.stop();config_button.config(state='normal')
+                    last_outcome.update(data)
+                    if smoke:window.after(200,window.destroy)
                     status.set('Проверка завершена' if data['ok'] else 'Проверка завершилась с ошибкой')
                     description.delete('1.0','end')
                     keys=['run_id','Итог','Новых XML','Добавлено','Скорректировано','Клиентов с совпадениями','Проблемных строк']+[f'Закрыто код {i}' for i in range(4,9)]
@@ -175,6 +184,7 @@ def gui(rootdir,schemas):
         else:window.destroy()
     window.protocol('WM_DELETE_WINDOW',close)
     window.after(150,start);window.after(100,poll);window.mainloop()
+    return last_outcome
 
 
 def main():

@@ -13,10 +13,6 @@ from .transaction import digest
 def self_test(workdir,schemas,gui=False):
     report={'ok':False,'platform':platform.platform(),'python':platform.python_version(),'checks':[]}
     try:
-        if gui:
-            import tkinter as tk
-            root=tk.Tk();root.withdraw();root.update();root.destroy()
-            report['checks'].append('Tk window created and closed')
         with tempfile.TemporaryDirectory(prefix='Самопроверка ',dir=workdir) as temp:
             folder=Path(temp)
             template(folder/'клиенты.xlsx')
@@ -43,6 +39,14 @@ def self_test(workdir,schemas,gui=False):
             failed=run(folder,config,schemas)
             if failed['ok'] or digest(folder/MASTER_NAME)!=before:raise RuntimeError('Повреждённый XML изменил базу')
             report['checks'].append('Invalid XML aborts without changing master')
+            if gui:
+                from .app import gui as application_window
+                from .transaction import durable_json
+                (folder/'CB_ES550P_20261019_003.XML').unlink()
+                durable_json(folder/'service'/'settings.json',config)
+                ui_result=application_window(folder,schemas,smoke=True)
+                if not ui_result.get('ok'):raise RuntimeError('GUI workflow failed: '+str(ui_result.get('error')))
+                report['checks'].append('Actual Tk application window, auto-start, worker, reports and close')
         report['ok']=True
     except Exception as exc:
         report['error']=str(exc)

@@ -116,3 +116,54 @@ class IntegrationTests(unittest.TestCase):
         results=check_clients([dict(row=4,values=['Примеров Тест Тестович'],issues=[],inn='987654321098')],[p],[],False)
         self.assertTrue(results['active'])
         self.assertEqual(results['clients'][0][2],'Конфликт реквизитов')
+
+    def test_add_then_close_in_package_not_active(self):
+        self.xml(1,[dict(number=1)])
+        self.xml(2,[dict(number=1,code=5)])
+        outcome=self.run_app();self.assertTrue(outcome['ok'],outcome)
+        state,_,_=read_master(self.root/MASTER_NAME)
+        self.assertFalse(state.active);self.assertEqual(len(state.history),2)
+        from openpyxl import load_workbook
+        b=load_workbook(outcome['reports'][0],read_only=True)
+        try:self.assertEqual(len(list(b['ИзмененияПоКлиентам'].iter_rows(min_row=2))),2)
+        finally:b.close()
+
+    def test_calendar_date_rejected(self):
+        raw=message(day='31/02/2026')
+        with self.assertRaises(ValueError):
+            validate(raw,'CB_ES550P_20260231_001.XML',schema(SCHEMAS))
+
+    def test_schema_integrity(self):
+        import shutil
+        target=self.root/'schemas';shutil.copytree(SCHEMAS,target)
+        with (target/'data_types.xsd').open('ab') as f:f.write(b' ')
+        with self.assertRaisesRegex(ValueError,'Контрольная сумма'):
+            schema(target)
+
+    def test_streamed_report_overflow_keeps_full_text(self):
+        from check764p.workbooks import write,rows
+        from openpyxl import load_workbook
+        text='Длинный синтетический текст '*2000
+        path=self.root/'result.xlsx'
+        write(path,{'Результаты':(['Текст'],[[text],['=2+2'],['00123']])},max_rows=3)
+        b=load_workbook(path,read_only=True)
+        try:
+            chunks=list(rows(b,'ДлинныеЗначения'))
+            self.assertEqual(''.join(row[2] for row in chunks),text)
+            self.assertEqual(b['Результаты']['A3'].data_type,'s')
+            self.assertEqual(b['Результаты_2']['A2'].value,'00123')
+        finally:b.close()
+
+    def test_mapped_extra_columns_and_hidden_rows(self):
+        from openpyxl import load_workbook
+        from check764p.excel import read_clients
+        p=self.root/'клиенты.xlsx';b=load_workbook(p)
+        b.active['C3']='Внутренний номер';b.active['C4']='000001';b.active.row_dimensions[4].hidden=True
+        b.save(p);b.close()
+        clients,_=read_clients(p,'Клиенты',['Наименование полное'],extra_columns={'id':'Внутренний номер'})
+        self.assertEqual(clients[0]['id'],'000001')
+
+    def test_dates_normalized_without_false_conflict(self):
+        from check764p.reports import comparable_date
+        self.assertEqual(comparable_date('02.01.2000'),comparable_date('02/01/2000'))
+        self.assertEqual(comparable_date('2000-01-02 00:00:00'),comparable_date('02/01/2000'))

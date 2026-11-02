@@ -4,7 +4,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font
 
 
-def read_clients(path, sheet, columns, header_row=3):
+def read_clients(path, sheet, columns, header_row=3, extra_columns=None):
     book = load_workbook(path, read_only=True, data_only=False, keep_links=False)
     try:
         ws = book[sheet]
@@ -33,6 +33,10 @@ def read_clients(path, sheet, columns, header_row=3):
             raw = {str(headers[i] or f'Колонка {i+1}'): (str(c.value) if c.value is not None else '') for i,c in enumerate(row) if i < len(headers)}
             aliases = {'inn': ('ИНН','ИНН клиента'), 'birth': ('Дата рождения','ДатаРождения'), 'id': ('IDКлиента','ID клиента'), 'type': ('Тип лица','ТипЛица')}
             extra = {key: next((raw[h] for h in names if raw.get(h)), '') for key,names in aliases.items()}
+            for key,heading in (extra_columns or {}).items():
+                if heading:
+                    if headers.count(heading)!=1:raise ValueError(f'Неоднозначный дополнительный заголовок: {heading}')
+                    extra[key]=raw.get(heading,'')
             records.append(dict(row=row_number, values=values, issues=issues, raw=raw, **extra))
         return records, skipped
     finally:

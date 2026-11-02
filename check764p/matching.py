@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 RULES_VERSION = '1.0'
+NORMALIZATION_VERSION = '1.0'
 OPF = ('ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ', 'ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО',
        'АКЦИОНЕРНОЕ ОБЩЕСТВО', 'ООО', 'ПАО', 'ОАО', 'ЗАО', 'АО', 'ИП')
 TRANSLIT = dict(zip('АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ',
@@ -127,7 +128,7 @@ def candidates(left, right, kind=None, fuzzy=True):
 
 def search_keys(value):
     """Exact inverted keys are a superset of every non-fuzzy rule above."""
-    reps = list(representations(value).values()) + list(representations(' '.join(company_words(value))).values())
+    reps = set(representations(value).values()) | set(representations(' '.join(company_words(value))).values())
     return {('representation', x) for x in reps if x} | {('token', x) for text in reps for x in words(text)}
 
 
